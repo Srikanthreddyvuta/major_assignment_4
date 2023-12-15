@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Vuta Srikanth Reddy</title>
+
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+
+    <style>
+        #updatedTime {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-family: sans-serif;
+            font-size: 12pt;
+        }
+
+        .legendText {
+            font-family: sans-serif;
+            font-size: 5pt;
+        }
+
+        .slider-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 15px;
+            background-color: white;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1>Vuta Srikanth Reddy</h1>
+    <svg width="80vw" viewBox="0 0 600 600"></svg>
+
+    <div id='updatedTime'>
+    </div>
+
+    <div class="slider-container">
+        <label for="threshold">Threshold:</label>
+        <input type="range" id="threshold" min="0" max="500" step="10" value="300">
+        <span id="threshold-value">300</span>
+    </div>
+
+    <script>
+        const dataFileName = 'Data_CT.csv';
+        let svgContainer = d3.select("svg");
+
+        const geoPath = d3.geoPath();
+
+        function plotContour(fileName, threshold) {
+            d3.csv(fileName).then(function (data) {
+                let rows = 512, cols = 512;
+
+                let values_T = [];
+                data.forEach(function (d) {
+                    values_T.push(+d[0]);
+                });
+
+                const minValue = d3.min(values_T);
+                const maxValue = d3.max(values_T);
+
+                const colorScale = d3.scaleDiverging()
+                    .domain([minValue, (minValue + maxValue) / 2, maxValue])
+                    .interpolator(d3.interpolateRdBu);
+
+                let contours = d3.contours()
+                    .size([rows, cols])
+                    .thresholds(d3.range(minValue, maxValue, threshold))
+                    (values_T);
+
+                svgContainer.selectAll(".contours").remove();
+
+                svgContainer.append("g").attr("class", "contours")
+                    .selectAll("path")
+                    .data(contours)
+                    .enter()
+                    .append("path")
+                    .attr("d", function (d) { return geoPath(d); })
+                    .attr("stroke", "black")
+                    .attr("stroke-width", ".1px")
+                    .attr("stroke-linejoin", "round")
+                    .attr("fill", function (d) { return colorScale(d.value); });
+            });
+        }
+
+        // Initial plot with default threshold value
+        plotContour(dataFileName, 300);
+
+        // Slider event listener
+        const slider = document.getElementById('threshold');
+        const thresholdValue = document.getElementById('threshold-value');
+
+        slider.addEventListener('input', function () {
+            thresholdValue.textContent = this.value;
+            plotContour(dataFileName, +this.value);
+        });
+    </script>
+</body>
+
+</html>
